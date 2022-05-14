@@ -1,40 +1,45 @@
 package com.uca.dao;
 
-
 import com.uca.entity.StudentEntity;
+import com.uca.util.IDUtil;
+import com.uca.util.StringUtil;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-
+import java.util.Objects;
 
 public class StudentDAO extends _Generic<StudentEntity>
 {
-    private StudentEntity getFullEntity(ResultSet resultSet) throws SQLException {
+    @Override
+    StudentEntity getFullEntity(ResultSet resultSet) throws SQLException
+    {
+        Objects.requireNonNull(resultSet);
         StudentEntity entity = new StudentEntity();
         entity.setId(resultSet.getLong("id_student"));
         entity.setFirstName(resultSet.getString("firstname"));
         entity.setLastName(resultSet.getString("lastname"));
-        return  entity;
+        return entity;
     }
+
     @Override
     public StudentEntity create(StudentEntity obj)
     {
-        long S_id = obj.getId();
-        String S_lastN = obj.getLastName();
-        String S_firstN = obj.getFirstName();
-        try {
+        Objects.requireNonNull(obj);
+        try
+        {
             PreparedStatement statement = this.connect.prepareStatement(
-                    "INSERT INTO Student(id_student, lastname, firstname) VALUES(?, ?, ?);");
-            statement.setLong(1, S_id);
-            statement.setString(2, S_lastN);
-            statement.setString(3, S_firstN);
+                    "INSERT INTO Student(lastname, firstname) VALUES(?, ?);");
+            statement.setString(1, StringUtil.requiredOfSize(obj.getLastName()));
+            statement.setString(2, StringUtil.requiredOfSize(obj.getFirstName()));
             statement.executeUpdate();
-        }
-        catch (SQLException e) {
+            return obj;
+        } catch (SQLException e)
+        {
             e.printStackTrace();
         }
-        return obj;
+        return null;
     }
 
     @Override
@@ -47,74 +52,70 @@ public class StudentDAO extends _Generic<StudentEntity>
                     "SELECT * FROM Student ORDER BY id_student;");
 
             ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()){
-                entities.add(getFullEntity(resultSet));
+            while (resultSet.next())
+            {
+                entities.add(this.getFullEntity(resultSet));
             }
-        }
-        catch (SQLException e)
+        } catch (SQLException e)
         {
             e.printStackTrace();
         }
-        return  entities;
+        return entities;
     }
 
     @Override
     public StudentEntity readById(long id)
     {
+        IDUtil.requireValid(id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
                     "SELECT * FROM Student WHERE id_student = ?;");
             statement.setLong(1, id);
             ResultSet resultSet = statement.executeQuery();
-            resultSet.next();
-
-            return getFullEntity(resultSet);
+            if (resultSet.next())
+            {
+                return this.getFullEntity(resultSet);
+            }
         } catch (SQLException e)
         {
             e.printStackTrace();
         }
-        return null; //TODO decide if we can let this return null... probably not
+        return null;
     }
-    public long findLastId() throws SQLException {
 
-            PreparedStatement statement = this.connect.prepareStatement(
-                    "SELECT MAX(id_student) AS id_student FROM Student ;");
-            ResultSet resultSet = statement.executeQuery();
-            resultSet.next();
-            return resultSet.getLong("id_student");
-    }
     @Override
     public StudentEntity update(StudentEntity obj, long id)
     {
-        String fName = obj.getFirstName();
-        String lName = obj.getLastName();
-
+        Objects.requireNonNull(obj);
+        IDUtil.requireValidAndIdentical(obj.getId(), id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
                     "UPDATE Student SET lastname = ?, firstname = ? WHERE id_student = ?;");
-            statement.setString(1, lName);
-            statement.setString(2, fName);
+            statement.setString(1, StringUtil.requiredOfSize(obj.getFirstName()));
+            statement.setString(2, StringUtil.requiredOfSize(obj.getLastName()));
             statement.setLong(3, id);
             statement.executeUpdate();
-
+            return obj;
         } catch (SQLException e)
         {
             e.printStackTrace();
         }
-        return obj;
+        return null;
     }
 
     @Override
     public void delete(StudentEntity obj)
     {
-        this.deleteById(obj.getId()); //Todo if we want to use this then we have to change deleteByID to private ?
+        Objects.requireNonNull(obj);
+        this.deleteById(obj.getId());
     }
 
     @Override
     public void deleteById(long id)
     {
+        IDUtil.requireValid(id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(

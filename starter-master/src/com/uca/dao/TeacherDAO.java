@@ -1,19 +1,22 @@
 package com.uca.dao;
 
 import com.uca.entity.TeacherEntity;
+import com.uca.util.IDUtil;
+import com.uca.util.StringUtil;
 
 import javax.naming.OperationNotSupportedException;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class TeacherDAO extends _Generic<TeacherEntity>
 {
-    // TODO redo with CM slides and security in mind?
-    // TODO decide whether to keep ID in the code or leave it in the database
-    // TODO actually do something with some of those exceptions
-
-    private TeacherEntity getFullEntity(ResultSet resultSet) throws SQLException
+    @Override
+    TeacherEntity getFullEntity(ResultSet resultSet) throws SQLException
     {
+        Objects.requireNonNull(resultSet);
         TeacherEntity entity = new TeacherEntity();
         entity.setId(resultSet.getLong("id_teacher"));
         entity.setFirstName(resultSet.getString("firstname"));
@@ -25,17 +28,44 @@ public class TeacherDAO extends _Generic<TeacherEntity>
     }
 
     @Override
-    public TeacherEntity create(TeacherEntity obj) throws SQLException
+    public TeacherEntity create(TeacherEntity obj)
     {
-        PreparedStatement statement = this.connect.prepareStatement(
-                "INSERT INTO Teacher(firstname, lastname, username, userpwd, usersalt) VALUES(?, ?, ?, ?, ?);");
-        statement.setString(1, obj.getFirstName());
-        statement.setString(2, obj.getLastName());
-        statement.setString(3, obj.getUserName());
-        statement.setString(4, obj.getUserPwd());
-        statement.setString(5, obj.getUserSalt());
-        statement.executeUpdate();
-        return obj;
+        try
+        {
+            PreparedStatement statement = this.connect.prepareStatement(
+                    "INSERT INTO Teacher(firstname, lastname, username, userpwd, usersalt) VALUES(?, ?, ?, ?, ?);");
+            statement.setString(1, StringUtil.requiredOfSize(obj.getFirstName()));
+            statement.setString(2, StringUtil.requiredOfSize(obj.getLastName()));
+            statement.setString(3, StringUtil.requiredOfSize(obj.getUserName()));
+            statement.setString(4, StringUtil.requiredOfSize(obj.getUserPwd()));
+            statement.setString(5, StringUtil.requiredOfSize(obj.getUserSalt()));
+            statement.executeUpdate();
+            return obj;
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public TeacherEntity readByUserName(String userName)
+    {
+        StringUtil.requiredOfSize(userName);
+        try
+        {
+            PreparedStatement statement = this.connect.prepareStatement(
+                    "SELECT * FROM Teacher WHERE username = ?;");
+            statement.setString(1, userName); // username is UNIQUE, no risk of amibuguity
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next())
+            {
+                return this.getFullEntity(resultSet);
+            }
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -45,12 +75,12 @@ public class TeacherDAO extends _Generic<TeacherEntity>
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
-                    "SELECT * FROM Teacher ORDER BY lastname;");
+                    "SELECT * FROM Teacher ORDER BY id_teacher;");
 
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next())
             {
-                entities.add(getFullEntity(resultSet));
+                entities.add(this.getFullEntity(resultSet));
             }
         } catch (SQLException e)
         {
@@ -62,14 +92,17 @@ public class TeacherDAO extends _Generic<TeacherEntity>
     @Override
     public TeacherEntity readById(long id)
     {
+        IDUtil.requireValid(id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
                     "SELECT * FROM Teacher WHERE id_teacher = ?;");
             statement.setLong(1, id);
             ResultSet resultSet = statement.executeQuery();
-            resultSet.next();
-            return getFullEntity(resultSet);
+            if (resultSet.next())
+            {
+                return this.getFullEntity(resultSet);
+            }
         } catch (SQLException e)
         {
             e.printStackTrace();
@@ -77,39 +110,31 @@ public class TeacherDAO extends _Generic<TeacherEntity>
         return null;
     }
 
-    public TeacherEntity readByUserName(String userName)
-    {
-        try
-        {
-            PreparedStatement statement = this.connect.prepareStatement(
-                    "SELECT * FROM Teacher WHERE username = ?;");
-            statement.setString(1, userName); // username is UNIQUE, no risk of amibuguity
-            ResultSet resultSet = statement.executeQuery();
-            resultSet.next();
-            return getFullEntity(resultSet);
-        } catch (SQLException e)
-        {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
+    /**
+     * NOT SUPPORTED
+     */
     @Override
     public TeacherEntity update(TeacherEntity obj, long id) throws OperationNotSupportedException
     {
-        throw new OperationNotSupportedException("modifier un professeur : hors de la portée de ce projet");
+        throw new OperationNotSupportedException("update teacher: not in this project's scope");
     }
 
+    /**
+     * NOT SUPPORTED
+     */
     @Override
     public void delete(TeacherEntity obj) throws OperationNotSupportedException
     {
         this.deleteById(obj.getId());
     }
 
+    /**
+     * NOT SUPPORTED
+     */
     @Override
     public void deleteById(long id) throws OperationNotSupportedException
     {
-        throw new OperationNotSupportedException("effacer un professeur : hors de la portée de ce projet");
+        throw new OperationNotSupportedException("delete teacher: not in this project's scope");
     }
 
 }

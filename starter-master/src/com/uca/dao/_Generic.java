@@ -2,14 +2,17 @@ package com.uca.dao;
 
 import javax.naming.OperationNotSupportedException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 
 public abstract class _Generic<T>
 {
-    public Connection connect = _Connector.getInstance();
+    final Connection connect = _Connector.getInstance();
 
-    public abstract T create(T obj) throws SQLException;
+    abstract T getFullEntity(ResultSet resultSet) throws SQLException;
+
+    public abstract T create(T obj);
 
     public abstract Collection<T> readAll();
 

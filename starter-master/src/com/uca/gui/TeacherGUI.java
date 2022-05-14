@@ -1,79 +1,105 @@
 package com.uca.gui;
 
 import com.uca.core.TeacherCore;
-import com.uca.dao._Encryptor;
 import com.uca.entity.TeacherEntity;
+import com.uca.util.Encryptor;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
-public class TeacherGUI
+import static com.uca.util.IDUtil.requireValid;
+import static com.uca.util.StringUtil.isValidShortString;
+
+public class TeacherGUI extends _BasicGUI
 {
-    public static String readAll() throws IOException, TemplateException
-    {
-        Map<String, Object> input    = new HashMap<>();
-        Template            template = _FreeMarkerInitializer.getContext().getTemplate("teachers/teachers.ftl");
+    private static final int UNHASHED_PWD_SIZE_MAX = 16;
+    private static final int UNHASHED_PWD_SIZE_MIN = 4;
+    private static final int SALT_SIZE             = 32;
 
-        input.put("teachers", TeacherCore.readAll());
-        return _UtilGUI.render(template, input, new StringWriter());
-    }
-
-    public static String readById(long id) throws IOException, TemplateException
-    {
-        Map<String, Object> input    = new HashMap<>();
-        Template            template = _FreeMarkerInitializer.getContext().getTemplate("teachers/teacher.ftl");
-
-        input.put("teacher", TeacherCore.readById(id));
-        return _UtilGUI.render(template, input, new StringWriter());
-    }
-
-    public static String readByUserName(String userName) throws IOException, TemplateException
-    {
-        Map<String, Object> input    = new HashMap<>();
-        Template            template = _FreeMarkerInitializer.getContext().getTemplate("teachers/teacher.ftl");
-
-        input.put("teacher", TeacherCore.readByUserName(userName));
-        return _UtilGUI.render(template, input, new StringWriter());
-    }
-
-    public static String create(String firstName, String lastName, String userName, String userPwd)
+    public static String create(String firstName,
+                                String lastName,
+                                String userName,
+                                String userPwd,
+                                String userPwdValidation)
             throws IOException, TemplateException
     {
-        //TODO check not null, check size of userPwd between 4 and 16
-        Template            template = _FreeMarkerInitializer.getContext().getTemplate("auth/signup.ftl");
-        Map<String, Object> input    = new HashMap<>();
-        TeacherEntity       teacher  = new TeacherEntity();
-        teacher.setFirstName(firstName);
-        teacher.setLastName(lastName);
-        teacher.setUserName(userName);
-        teacher.setUserSalt(_Encryptor.generateSalt(32));
-        teacher.setUserPwd(_Encryptor.generateSecurePassword(userPwd, teacher.getUserSalt()));
-        input.put("user", teacher);
-        try
+        TeacherEntity teacher = new TeacherEntity();
+        if (!isValidShortString(firstName)
+            || !isValidShortString(lastName)
+            || !isValidShortString(userName)
+            || !isValidShortString(userPwd)
+            || !isValidShortString(userPwdValidation))
         {
-            if (TeacherCore.create(teacher) != null)
+            infoMsg = InfoMsg.CHAMPS_NON_POSTABLES;
+        }
+        else
+        {
+            if (userPwd.length() < UNHASHED_PWD_SIZE_MIN ||
+                userPwd.length() > UNHASHED_PWD_SIZE_MAX)
             {
-                input.put("status", "est maintenant inscrit");
-            }
-        } catch (SQLException e)
-        {
-            if (e.getClass() == JdbcSQLIntegrityConstraintViolationException.class)
-            {// the only constraint in this table
-                input.put("status", "ce nom d'utilisateur est d&eacute;j&agrave; pris !");
+                infoMsg = InfoMsg.TAILLE_MOTS_DE_PASSE_NON_RESPECTEES;
             }
             else
             {
-                input.put("status", "un probl&egrave;me est survernu " +
-                                    "&agrave; cause de ce nom d'utilisateur et/ou ce mot de passe");
-                e.printStackTrace();
+                if (!userPwd.equals(userPwdValidation))
+                {
+                    infoMsg = InfoMsg.MOT_DE_PASSE_CONFIRMATION_DIFFERENT;
+                }
+                else
+                {
+                    if (TeacherCore.readByUserName(userName) != null)
+                    {
+                        infoMsg = InfoMsg.NOM_UTILISATEUR_EXISTE_DEJA;
+                    }
+                    else
+                    {
+                        teacher.setFirstName(firstName);
+                        teacher.setLastName(lastName);
+                        teacher.setUserName(userName);
+                        teacher.setUserSalt(Encryptor.generateSalt(SALT_SIZE));
+                        teacher.setUserPwd(Encryptor.generateSecurePassword(userPwd, teacher.getUserSalt()));
+                        infoMsg = TeacherCore.create(teacher) != null
+                                  ? InfoMsg.AJOUT_SUCCES
+                                  : InfoMsg.AJOUT_ECHEC;
+                    }
+                }
             }
         }
-        return _UtilGUI.render(template, input, new StringWriter());
+        return readAll();
+    }
+
+    public static String readAll()
+            throws IOException, TemplateException, NoSuchElementException
+    {
+        Map<String, Object>      input    = new HashMap<>();
+        Template                 template = _FreeMarkerInitializer.getContext().getTemplate("teachers/teachers.ftl");
+        ArrayList<TeacherEntity> teachers = TeacherCore.readAll();
+        if (teachers.isEmpty())
+        {
+            throw new NoSuchElementException(InfoMsg.PAS_D_ENSEIGNANTS_CONTACTEZ_ADMIN.name());
+        }
+        input.put("teachers", teachers);
+        return render(template, input, new StringWriter());
+    }
+
+    public static String readById(long id)
+            throws IOException, TemplateException, NoSuchElementException, IllegalArgumentException
+    {
+        requireValid(id);
+        Map<String, Object> input    = new HashMap<>();
+        Template            template = _FreeMarkerInitializer.getContext().getTemplate("teachers/teacher.ftl");
+        TeacherEntity       teacher  = TeacherCore.readById(id);
+        if (teacher == null)
+        {
+            throw new NoSuchElementException(InfoMsg.RESSOURCE_N_EXISTE_PAS.name());
+        }
+        input.put("teacher", teacher);
+        return render(template, input, new StringWriter());
     }
 }

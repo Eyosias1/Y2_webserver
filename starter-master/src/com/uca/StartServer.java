@@ -1,208 +1,368 @@
 package com.uca;
 
-import com.uca.core.StickerCore;
-import com.uca.core.StudentCore;
-import com.uca.entity.Color;
-import com.uca.entity.Description;
-import com.uca.entity.StickerEntity;
-import com.uca.entity.StudentEntity;
-import com.uca.login.LoginController;
 import com.uca.dao._Initializer;
 import com.uca.gui.*;
+import com.uca.util.LoginUtil;
+import com.uca.util.PropertiesReader;
+import freemarker.template.TemplateException;
+import spark.Response;
 
+import javax.naming.OperationNotSupportedException;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
-import static com.uca.util.Request.*;
+import static com.uca.util.RequestUtil.getParamFromReqBody;
+import static com.uca.util.RequestUtil.getParamUTF8;
+import static java.net.HttpURLConnection.*;
 import static spark.Spark.*;
 
 public class StartServer
 {
-    public static final int PORT = 8081;
+
+    private static final int portInUse;
+
+    static
+    {
+        try
+        {
+            portInUse = Integer.parseInt(new PropertiesReader().getProperty("port"));
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+            throw new RuntimeException("could not read port number in configs");
+        }
+    }
+
+    private static int code;
+
+    private static int useAndResetCode()
+    {
+        int out = code;
+        code = 0;
+        return out;
+    }
+
+    private static String manageExceptions(Exception e, Response res) throws TemplateException, IOException
+    {
+        Objects.requireNonNull(e);
+        Class<? extends Exception> eClass = e.getClass();
+        if (eClass == NumberFormatException.class)
+        {
+            code = HTTP_BAD_REQUEST;
+        }
+        if (eClass == NoSuchElementException.class
+            || eClass == IllegalArgumentException.class) // for invalid IDs...
+        {
+            code = HTTP_NOT_FOUND;
+        }
+        if (eClass == OperationNotSupportedException.class)
+        {
+            code = HTTP_BAD_METHOD;
+        }
+        if (eClass == SQLException.class
+            || eClass == TemplateException.class
+            || eClass == IOException.class)
+        {
+            code = HTTP_INTERNAL_ERROR;
+        }
+        if (code > 0)
+        {
+            res.status(code);
+            return ErrorGUI.display(useAndResetCode(), e.toString());
+        }
+        return ErrorGUI.displayUnknown(e.toString());
+    }
 
     public static void main(String[] args)
     {
         //Configure Spark
         staticFiles.location("/static/");
-        port(PORT);
+        port(portInUse);
 
         _Initializer.Init();
 
+        before("/hidden/*", LoginUtil::isLoggedInOrElseRedirect);
+
+        //===============Auth & Index===============
         get("/", (req, res) -> IndexGUI.display());
 
-        get("/teachers", (req, res) -> TeacherGUI.readAll());
+        get("/login", (req, res) -> LoginGUI.display(null));
 
-        get("/students", (req, res) ->{
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
+        get("/login/timeout", (req, res) -> LoginGUI.display(InfoMsg.SESSION_TERMINEE_AUTHENTIFICATION_NECESSAIRE));
+
+        get("/login/redirect", (req, res) -> LoginGUI.display(InfoMsg.AUTHENTIFICATION_NECESSAIRE));
+
+        get("/hidden/signup", (req, res) -> SignUpGUI.display());
+
+        post("/login", (req, res) -> {
+            try
             {
-                return StudentGUI.readAll();
+                return LoginUtil.handleLoginPost(req, res);
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
             }
-            return null;
         });
 
-        get("/students/:id_student", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
+        get("/logout", (req, res) -> {
+            try
             {
-                return StudentGUI.readById(Long.parseLong(req.params(":id_student")));
-            }
-            return null;
-        });
-        post("/students", (req, res) ->
-        {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
+                return LoginUtil.handleLogout(res);
+            } catch (Exception e)
             {
-                return StudentGUI.displayCreate();
+                return manageExceptions(e, res);
             }
-            return null;
         });
 
-        post("/students/create",
-                (req, res) -> {
-                    LoginController.ensureUserIsLoggedIn(req, res);
-                    if (clientAcceptsHtml(req))
-                    {
-                        HashMap<String, String> params = getParamFromReqBody(req.body());
-                        StudentGUI.create(getParamUTF8(params, "lastname"),
-                                getParamUTF8(params, "firstName"));
-                        res.redirect("/students");
-                    }
-                    return null;
-                });
-        post("/students/:id_student",
-                (req, res) ->{
-                    LoginController.ensureUserIsLoggedIn(req, res);
-                    if (clientAcceptsHtml(req))
-                    {
-                        StudentGUI.displayModifPage(Long.parseLong(req.params(":id_student")));
-                        return StudentGUI.displayModifPage(Long.parseLong(req.params(":id_student")));
-                    }
-                    return null;
-                });
-        post("/students/modif/:id_student",
-                (req, res) ->{
-                    LoginController.ensureUserIsLoggedIn(req, res);
-                    if (clientAcceptsHtml(req))
-                    {
-                        HashMap<String, String> params = getParamFromReqBody(req.body());
-                        StudentEntity student = new StudentEntity();
-                        student.setFirstName(getParamUTF8(params, "firstName"));
-                        student.setLastName(getParamUTF8(params, "lastname"));
-                        student.setId(Long.parseLong(req.params(":id_student")));
-                        StudentCore.update(student, student.getId());
-                        res.redirect("/students");
-                    }
-                    return null;
-                });
-        post("/students/delete/:id_student", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
-            {
-                StudentCore.deletbyId(Long.parseLong(req.params(":id_student")));
-                res.redirect("/students");
-            }
-            return null;
-        });
-        get("/login", (req, res) -> LoginGUI.display("merci de vous identifier"));
-
-        post("/login", LoginController::handleLoginPost);
-
-        get("/teachers/id/:id_teacher", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
-            {
-                return TeacherGUI.readById(Long.parseLong(req.params(":id_teacher")));
-            }
-            return null;
-        });
-
-        get("/teachers/user/:username", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
-            {
-                return TeacherGUI.readByUserName(req.params(":username"));
-            }
-            return null;
-        });
-
-        get("/signup", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req))
-            {
-                return SignUpGUI.display();
-            }
-            return null;
-        });
-
-        post("/signup",
+        //===============CR** teachers===============
+        post("/hidden/signup",
              (req, res) -> {
-                 LoginController.ensureUserIsLoggedIn(req, res);
-                 if (clientAcceptsHtml(req))
+                 try
                  {
                      HashMap<String, String> params = getParamFromReqBody(req.body());
                      return TeacherGUI.create(getParamUTF8(params, "firstname"),
                                               getParamUTF8(params, "lastname"),
                                               getParamUTF8(params, "username"),
-                                              getParamUTF8(params, "userpwd"));
+                                              getParamUTF8(params, "userpwd"),
+                                              getParamUTF8(params, "userpwd-validation"));
+                 } catch (Exception e)
+                 {
+                     return manageExceptions(e, res);
                  }
-                 return null;
              });
 
-        get("/stickers", (req, res) -> StickerGUI.readAll());
-
-        get("/stickers/:id_sticker", (req, res) -> StickerGUI.readById(Long.parseLong(req.params(":id_sticker"))));
-        post("/stickers", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req)) {
-                return StickerGUI.dispalyCreatePage();
+        get("/hidden/teachers", (req, res) -> {
+            try
+            {
+                return TeacherGUI.readAll();
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
             }
-            return null;
         });
 
-        post("/stickers/create", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req)) {
+        get("/hidden/teachers/:id_teacher",
+            (req, res) -> {
+                try
+                {
+                    return TeacherGUI.readById(Long.parseLong(req.params(":id_teacher")));
+                } catch (Exception e)
+                {
+                    return manageExceptions(e, res);
+                }
+            });
+
+        //===============CRUD students===============
+        post("/hidden/students", (req, res) -> {
+            try
+            {
                 HashMap<String, String> params = getParamFromReqBody(req.body());
-                StickerEntity sticker  = new StickerEntity();
-                sticker.setColor(Color.valueOf(getParamUTF8(params, "color")));
-                sticker.setDescription(Description.valueOf(getParamUTF8(params, "description")));
-                sticker.setId(StickerCore.findLastId() + 1);
-                StickerCore.create(sticker);
-                res.redirect("/stickers");
+                return StudentGUI.create(getParamUTF8(params, "lastname"),
+                                         getParamUTF8(params, "firstname"));
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
             }
-            return null;
+
         });
 
-        post("/stickers/:id_sticker", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req)) {
-                return StickerGUI.dispalyModifPage(Long.parseLong(req.params(":id_sticker")));
+        get("/hidden/students", (req, res) -> {
+            try
+            {
+                return StudentGUI.readAll();
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
             }
-            return null;
         });
 
-        post("/stickers/modif/:id_sticker", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req)) {
+        get("/hidden/students/:id_student",
+            (req, res) -> {
+                try
+                {
+                    return StudentGUI.readById(Long.parseLong(req.params(":id_student")));
+                } catch (Exception e)
+                {
+                    return manageExceptions(e, res);
+                }
+            });
+
+        post("/hidden/students/:id_student",
+             (req, res) -> {
+                 try
+                 {
+                     HashMap<String, String> params = getParamFromReqBody(req.body());
+                     return StudentGUI.update(Long.parseLong(req.params(":id_student")),
+                                              getParamUTF8(params, "lastname"),
+                                              getParamUTF8(params, "firstname"));
+                 } catch (Exception e)
+                 {
+                     return manageExceptions(e, res);
+                 }
+
+             });
+
+        post("/hidden/students/delete/:id_student",
+             (req, res) -> {
+                 try
+                 {
+                     return StudentGUI.deleteById(Long.parseLong(req.params(":id_student")));
+                 } catch (Exception e)
+                 {
+                     return manageExceptions(e, res);
+                 }
+             });
+
+        // NOT ALLOWED
+        get("/hidden/students/delete/:id_student",
+            (req, res) -> manageExceptions(
+                    new OperationNotSupportedException(InfoMsg.INADEQUATE_HTTP_VERB.name()),
+                    res)
+        );
+
+        //===============CRUD stickers===============
+        post("/hidden/stickers", (req, res) -> {
+            try
+            {
                 HashMap<String, String> params = getParamFromReqBody(req.body());
-                StickerEntity sticker  = new StickerEntity();
-                sticker.setColor(Color.valueOf(getParamUTF8(params, "color")));
-                sticker.setDescription(Description.valueOf(getParamUTF8(params, "description")));
-                sticker.setId(Long.parseLong(req.params(":id_sticker"))); // set the id of the new sticker the last one this way we don't need to auto increment
-                StickerCore.update(sticker, sticker.getId());
-                res.redirect("/stickers");
+                return StickerGUI.create(getParamUTF8(params, "color"),
+                                         getParamUTF8(params, "description"));
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
             }
-            return null;
+
         });
 
-        post("/stickers/delete/:id_sticker", (req, res) -> {
-            LoginController.ensureUserIsLoggedIn(req, res);
-            if (clientAcceptsHtml(req)) {
-                StickerCore.deleteById(Long.parseLong(req.params(":id_sticker")));
-                res.redirect("/stickers");
+        get("/stickers", (req, res) -> {
+            try
+            {
+                return StickerGUI.readAll(LoginUtil.isLoggedIn(req, res));
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
             }
-            return null;
         });
+
+        get("/stickers/:id_sticker",
+            (req, res) -> {
+                try
+                {
+                    return StickerGUI.readById(LoginUtil.isLoggedIn(req, res),
+                                               Long.parseLong(req.params(":id_sticker")));
+                } catch (Exception e)
+                {
+                    return manageExceptions(e, res);
+                }
+            });
+
+        post("/hidden/stickers/:id_sticker",
+             (req, res) -> {
+                 try
+                 {
+                     HashMap<String, String> params = getParamFromReqBody(req.body());
+                     return StickerGUI.update(Long.parseLong(req.params(":id_sticker")),
+                                              getParamUTF8(params, "color"),
+                                              getParamUTF8(params, "description"));
+                 } catch (Exception e)
+                 {
+                     return manageExceptions(e, res);
+                 }
+             });
+
+        post("/hidden/stickers/delete/:id_sticker",
+             (req, res) -> {
+                 try
+                 {
+                     return StickerGUI.deleteById(Long.parseLong(req.params(":id_sticker")));
+                 } catch (Exception e)
+                 {
+                     return manageExceptions(e, res);
+                 }
+             });
+
+        // NOT ALLOWED
+        get("/hidden/stickers/delete/:id_sticker",
+            (req, res) -> manageExceptions(
+                    new OperationNotSupportedException(InfoMsg.INADEQUATE_HTTP_VERB.name()),
+                    res)
+        );
+
+        //===============CR*D awards===============
+        post("/hidden/awards", (req, res) -> {
+            try
+            {
+                HashMap<String, String> params = getParamFromReqBody(req.body());
+                return AwardGUI.create(
+                        getParamUTF8(params, "motive"),
+                        LoginUtil.getUserName(req),
+                        Long.parseLong(getParamUTF8(params, "student-id")),
+                        Long.parseLong(getParamUTF8(params, "sticker-id")));
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
+            }
+        });
+
+        // NOT SUPPORTED
+        get("/hidden/awards",
+            (req, res) -> manageExceptions(
+                    new OperationNotSupportedException(InfoMsg.WRONG_URL__NOT_HIDDEN.name()),
+                    res)
+        );
+
+        get("/awards", (req, res) -> {
+            try
+            {
+                return AwardGUI.readAll(LoginUtil.isLoggedIn(req, res));
+            } catch (Exception e)
+            {
+                return manageExceptions(e, res);
+            }
+        });
+
+        get("/awards/student/:id_student",
+            (req, res) -> {
+                try
+                {
+                    return AwardGUI.readByStudentId(LoginUtil.isLoggedIn(req, res),
+                                                    Long.parseLong(req.params(":id_student")));
+                } catch (Exception e)
+                {
+                    return manageExceptions(e, res);
+                }
+            });
+
+        get("/awards/id/:id_award",
+            (req, res) -> {
+                try
+                {
+                    return AwardGUI.readById(LoginUtil.isLoggedIn(req, res), Long.parseLong(req.params(":id_award")));
+                } catch (Exception e)
+                {
+                    return manageExceptions(e, res);
+                }
+            });
+
+        post("/hidden/awards/delete/:id_award",
+             (req, res) -> {
+                 try
+                 {
+                     return AwardGUI.deleteById(Long.parseLong(req.params(":id_award")));
+                 } catch (Exception e)
+                 {
+                     return manageExceptions(e, res);
+                 }
+             });
+
+        // NOT ALLOWED
+        get("/hidden/awards/delete/:id_award",
+            (req, res) -> manageExceptions(
+                    new OperationNotSupportedException(InfoMsg.INADEQUATE_HTTP_VERB.name()),
+                    res)
+        );
     }
 }

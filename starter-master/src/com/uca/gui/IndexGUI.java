@@ -5,12 +5,15 @@ import freemarker.template.TemplateException;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
 
-public class IndexGUI
+public class IndexGUI extends _BasicGUI
 {
     public static String display() throws IOException, TemplateException
     {
-        Template template = _FreeMarkerInitializer.getContext().getTemplate("index.ftl");
-        return _UtilGUI.render(template, null, new StringWriter());
+        Map<String, Object> input    = new HashMap<>();
+        Template            template = _FreeMarkerInitializer.getContext().getTemplate("index.ftl");
+        return render(template, input, new StringWriter());
     }
 }

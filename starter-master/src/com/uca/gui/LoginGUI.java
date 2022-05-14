@@ -8,14 +8,13 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LoginGUI
+public class LoginGUI extends _BasicGUI
 {
-    public static String display(String status) throws TemplateException, IOException
+    public static String display(InfoMsg msg) throws TemplateException, IOException
     {
         Map<String, Object> input    = new HashMap<>();
         Template            template = _FreeMarkerInitializer.getContext().getTemplate("auth/login.ftl");
-
-        input.put("status", status);
-        return _UtilGUI.render(template, input, new StringWriter());
+        infoMsg = msg;
+        return render(template, input, new StringWriter());
     }
 }

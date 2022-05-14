@@ -1,25 +1,46 @@
 <#ftl encoding="utf-8">
 
 <html lang="fr">
-
+<#include "../bits/head.ftl">
 <body xmlns="http://www.w3.org/1999/html">
+<#include "../bits/navbar.ftl">
+<#include "../bits/status.ftl">
 
-    <a href="/">&larr; Index</a>
+<#if isAuthorized>
+    <#include "sticker-create-form.ftl">
+</#if>
 
-    <form method="POST" action="/stickers">
-        <button type="submit"> create </button>
-    </form>
-    <ul>
+<h2>Gommettes</h2>
+
+<#if stickers?has_content>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>couleur</th>
+            <th>description</th>
+            <#if isAuthorized>
+                <th>action</th>
+            </#if>
+        </tr>
         <#list stickers as sticker>
-            <li><a href="/stickers/${sticker.id}">${sticker.id} - ${sticker.color} ; ${sticker.description}</a></li>
-                <form method="POST" action="/stickers/${sticker.id}">
-                        <button type="submit"> modifie </button>
-                </form>
-                <form method="POST" action="/stickers/delete/${sticker.id}">
-                        <button type="submit"> delete </button>
-                </form>
+            <tr>
+                <td><a href="/stickers/${sticker.getId()}">${sticker.getId()}</a></td>
+                <td>${sticker.getColor().name()}</td>
+                <td>${sticker.getDescription().name()}</td>
+                <#if isAuthorized>
+                    <td>
+                        <a href="/stickers/${sticker.getId()}">
+                            <button type="button">Modifier</button>
+                        </a>
+                        <form method="POST" action="/hidden/stickers/delete/${sticker.id}">
+                            <button type="submit">Supprimer</button>
+                        </form>
+                    </td>
+                </#if>
+            </tr>
         </#list>
-    </ul>
+    </table>
+</#if>
 
 </body>
 

@@ -1,15 +1,15 @@
 <#ftl encoding="utf-8">
 
 <html lang="fr">
-
+<#include "../bits/head.ftl">
 <body xmlns="http://www.w3.org/1999/html">
+<#include "../bits/navbar.ftl">
+<#include "../bits/status.ftl">
 
-<a href="/teachers">&larr; Enseignants</a>
-
-<p>
-    Enseignant num&eacute;ro : ${teacher.id} <br>
-    ${teacher.firstName} ${teacher.lastName} (${teacher.userName})
-</p>
+<#if teacher?has_content>
+    <h2>Enseignant num&eacute;ro : ${teacher.getId()}</h2>
+    <p>${teacher.getFirstName()} ${teacher.getLastName()} (${teacher.getUserName()})</p>
+</#if>
 
 </body>
 

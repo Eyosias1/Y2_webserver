@@ -1,29 +1,39 @@
 package com.uca.entity;
 
+import com.uca.util.IDUtil;
+
+import java.util.Objects;
+
 public class StickerEntity
 {
-    private long  id;
-    private Color color;
+    private long        id;
+    private Color       color;
     private Description description;
 
-    public StickerEntity()
+    public StickerEntity() {}
+
+    // copy constructor (https://www.baeldung.com/java-constructors#copy)
+    StickerEntity(StickerEntity other)
     {
-        // never used
+        Objects.requireNonNull(other);
+        this.id = other.id;
+        this.color = other.color;
+        this.description = other.description;
     }
 
     public long getId()
     {
-        return id;
+        return this.id;
     }
 
     public void setId(long id)
     {
-        this.id = id;
+        this.id = IDUtil.requireValid(id);
     }
 
     public Color getColor()
     {
-        return color;
+        return this.color;
     }
 
     public void setColor(Color color)
@@ -33,7 +43,7 @@ public class StickerEntity
 
     public Description getDescription()
     {
-        return description;
+        return this.description;
     }
 
     public void setDescription(Description description)
@@ -45,9 +55,9 @@ public class StickerEntity
     public String toString()
     {
         return "StickerEntity{" +
-               "id=" + id +
-               ", color=" + color +
-               ", description='" + description + '\'' +
+               "id=" + this.id +
+               ", color=" + this.color +
+               ", description='" + this.description + '\'' +
                '}';
     }
 }

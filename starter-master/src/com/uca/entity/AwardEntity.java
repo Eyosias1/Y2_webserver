@@ -1,6 +1,10 @@
 package com.uca.entity;
 
+import com.uca.util.IDUtil;
+import com.uca.util.StringUtil;
+
 import java.sql.Date;
+import java.util.Objects;
 
 public class AwardEntity
 {
@@ -13,77 +17,74 @@ public class AwardEntity
 
     public long getId()
     {
-        return id;
+        return this.id;
     }
 
     public void setId(long id)
     {
-        this.id = id;
+        this.id = IDUtil.requireValid(id);
     }
 
     public Date getAttributionDate()
     {
-        // TODO return a copy instead ?
-        return attributionDate;
+        return (Date) this.attributionDate.clone();
     }
 
     public void setAttributionDate(Date attributionDate)
     {
-        this.attributionDate = attributionDate;
+        this.attributionDate = Objects.requireNonNull(attributionDate);
     }
 
     public String getMotive()
     {
-        return motive;
+        return this.motive;
     }
 
     public void setMotive(String motive)
     {
-        this.motive = motive;
+        this.motive = StringUtil.required(motive);
     }
 
     public TeacherEntity getTeacher()
     {
-        // TODO return a copy instead
-        return teacher;
+        return new TeacherEntity(this.teacher);
     }
 
     public void setTeacher(TeacherEntity teacher)
     {
-        this.teacher = teacher;
+        this.teacher = Objects.requireNonNull(teacher);
     }
 
     public StickerEntity getSticker()
     {
-        // TODO return a copy instead
-        return sticker;
+        return new StickerEntity(this.sticker);
     }
 
     public void setSticker(StickerEntity sticker)
     {
-        this.sticker = sticker;
+        this.sticker = Objects.requireNonNull(sticker);
     }
 
     public StudentEntity getStudent()
     {
-        // TODO return a copy instead
-        return student;
+        return new StudentEntity(this.student);
     }
 
     public void setStudent(StudentEntity student)
     {
-        this.student = student;
+        this.student = Objects.requireNonNull(student);
     }
 
     @Override
     public String toString()
     {
         return "AwardEntity{" +
-               "teacher=" + teacher +
-               ", sticker=" + sticker +
-               ", student=" + student +
-               ", attributionDate=" + attributionDate +
-               ", motive='" + motive + '\'' +
+               "id=" + this.id +
+               ", attributionDate=" + this.attributionDate +
+               ", motive='" + this.motive + '\'' +
+               ", teacher=" + this.teacher +
+               ", sticker=" + this.sticker +
+               ", student=" + this.student +
                '}';
     }
 }
