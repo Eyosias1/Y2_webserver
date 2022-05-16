@@ -13,15 +13,14 @@ settings - more research and tuning would be required in order to clear this up.
 
 `./gradlew run`
 
-Then enter `localhost:8081/` in a browser.
-
-You may have to ignore an SLF4J warning message, so don't worry too much if you see red in your terminal.
+Then follow instructions in terminal by entering `localhost:{XXXX}` in a browser.
 
 ## Project instructions
 
 Right [here](https://unicorn.artheriom.fr/#/techno-ws-l2)
 or [here in pdf](https://github.com/draialexis/Y2_webserver/files/8473212/TP_Version_Imprimable_au_07_03_22.pdf)
 
-## URIs
+## Report, annex (URIs + Figures)
+[REPORT.pdf](https://github.com/draialexis/Y2_webserver/files/8701001/REPORT.1.pdf)
 
-[uris_4_2.pdf](https://github.com/draialexis/Y2_webserver/files/8692585/URIs.pdf)
+[ANNEX.pdf](https://github.com/draialexis/Y2_webserver/files/8700982/ANNEX.pdf)
