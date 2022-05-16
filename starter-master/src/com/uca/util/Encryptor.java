@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
 
+import static com.uca.util.StringUtil.*;
+
 public class Encryptor
 {
     private static final Random RANDOM       = new SecureRandom();
@@ -28,16 +30,21 @@ public class Encryptor
         {
             salt.append(CHARS.charAt(RANDOM.nextInt(CHARS_LENGTH)));
         }
-        return new String(salt);
+        return requiredOfSize(String.valueOf(salt));
     }
 
     public static boolean verifyUserPassword(String providedPassword, String securedPassword, String salt)
     {
+        isValidShortString(providedPassword);
+        isValidShortString(securedPassword);
+        isValidShortString(salt);
         return securedPassword.equals(generateSecurePassword(providedPassword, salt));
     }
 
     public static String generateSecurePassword(String password, String salt)
     {
+        isValidShortString(password);
+        isValidShortString(salt);
         return Base64.getEncoder().encodeToString(generateHash(password.toCharArray(), salt.getBytes()));
     }
 
@@ -51,7 +58,7 @@ public class Encryptor
             return skf.generateSecret(spec).getEncoded();
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e)
         {
-            throw new AssertionError("erreur pendant le hashage : " + e.getMessage(), e);
+            throw new AssertionError("hashing error : " + e.getMessage(), e);
         } finally
         {
             spec.clearPassword();
