@@ -5,6 +5,7 @@ import com.uca.gui.*;
 import com.uca.util.LoginUtil;
 import com.uca.util.PropertiesReader;
 
+import javax.naming.OperationNotSupportedException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.NoSuchElementException;
@@ -12,6 +13,7 @@ import java.util.NoSuchElementException;
 import static com.uca.util.RequestUtil.getParamFromReqBody;
 import static com.uca.util.RequestUtil.getParamUTF8;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static spark.Spark.*;
 
@@ -43,7 +45,9 @@ public class StartServer
         before("/hidden/*", LoginUtil::isLoggedInOrElseRedirect);
 
         exception(Exception.class, (e, req, res) -> {
+
             e.printStackTrace();
+
             Class<? extends Exception> eClass = e.getClass();
             if (
                     eClass == NoSuchElementException.class
@@ -55,7 +59,14 @@ public class StartServer
             }
             else
             {
-                res.status(HTTP_INTERNAL_ERROR);
+                if (eClass == OperationNotSupportedException.class)
+                {
+                    res.status(HTTP_BAD_METHOD);
+                }
+                else
+                {
+                    res.status(HTTP_INTERNAL_ERROR);
+                }
             }
         });
 
@@ -75,15 +86,14 @@ public class StartServer
         get("/logout", (req, res) -> LoginUtil.handleLogout(res));
 
         //===============CR** teachers===============
-        post("/hidden/signup",
-             (req, res) -> {
-                 HashMap<String, String> params = getParamFromReqBody(req.body());
-                 return TeacherGUI.create(getParamUTF8(params, "lastname"),
-                                          getParamUTF8(params, "firstname"),
-                                          getParamUTF8(params, "username"),
-                                          getParamUTF8(params, "userpwd"),
-                                          getParamUTF8(params, "userpwd-validation"));
-             });
+        post("/hidden/teachers", (req, res) -> {
+            HashMap<String, String> params = getParamFromReqBody(req.body());
+            return TeacherGUI.create(getParamUTF8(params, "lastname"),
+                                     getParamUTF8(params, "firstname"),
+                                     getParamUTF8(params, "username"),
+                                     getParamUTF8(params, "userpwd"),
+                                     getParamUTF8(params, "userpwd-validation"));
+        });
 
         get("/hidden/teachers", (req, res) -> TeacherGUI.readAll());
 
@@ -102,27 +112,27 @@ public class StartServer
         get("/hidden/students/:id_student",
             (req, res) -> StudentGUI.readById(Long.parseLong(req.params(":id_student"))));
 
-        post("/hidden/students/:id_student",
-             (req, res) -> {
-                 HashMap<String, String> params = getParamFromReqBody(req.body());
-                 return StudentGUI.update(Long.parseLong(req.params(":id_student")),
-                                          getParamUTF8(params, "lastname"),
-                                          getParamUTF8(params, "firstname"));
-             });
+        // TODO remove and replace with PUT below
+        post("/hidden/students/:id_student", (req, res) -> {
+            HashMap<String, String> params = getParamFromReqBody(req.body());
+            return StudentGUI.update(Long.parseLong(req.params(":id_student")),
+                                     getParamUTF8(params, "lastname"),
+                                     getParamUTF8(params, "firstname"));
+        });
 
-        //        put("/hidden/students/:id_student",
-        //             (req, res) -> {
-        //                 HashMap<String, String> params = getParamFromReqBody(req.body());
-        //                 return StudentGUI.update(Long.parseLong(req.params(":id_student")),
-        //                                          getParamUTF8(params, "lastname"),
-        //                                          getParamUTF8(params, "firstname"));
-        //             });
+        put("/hidden/students/:id_student", (req, res) -> {
+            HashMap<String, String> params = getParamFromReqBody(req.body());
+            return StudentGUI.update(Long.parseLong(req.params(":id_student")),
+                                     getParamUTF8(params, "lastname"),
+                                     getParamUTF8(params, "firstname"));
+        });
 
+        // TODO remove and replace with DELETE below
         post("/hidden/students/delete/:id_student",
              (req, res) -> StudentGUI.deleteById(Long.parseLong(req.params(":id_student"))));
 
-        //        delete("/hidden/students/:id_student",
-        //             (req, res) -> StudentGUI.deleteById(Long.parseLong(req.params(":id_student"))));
+        delete("/hidden/students/:id_student",
+               (req, res) -> StudentGUI.deleteById(Long.parseLong(req.params(":id_student"))));
 
         //===============CRUD stickers===============
         post("/hidden/stickers", (req, res) -> {
@@ -137,27 +147,27 @@ public class StartServer
             (req, res) -> StickerGUI.readById(LoginUtil.isLoggedIn(req, res),
                                               Long.parseLong(req.params(":id_sticker"))));
 
-        post("/hidden/stickers/:id_sticker",
-             (req, res) -> {
-                 HashMap<String, String> params = getParamFromReqBody(req.body());
-                 return StickerGUI.update(Long.parseLong(req.params(":id_sticker")),
-                                          getParamUTF8(params, "color"),
-                                          getParamUTF8(params, "description"));
-             });
+        // TODO remove and replace with PUT below
+        post("/hidden/stickers/:id_sticker", (req, res) -> {
+            HashMap<String, String> params = getParamFromReqBody(req.body());
+            return StickerGUI.update(Long.parseLong(req.params(":id_sticker")),
+                                     getParamUTF8(params, "color"),
+                                     getParamUTF8(params, "description"));
+        });
 
-        //        put("/hidden/stickers/:id_sticker",
-        //             (req, res) -> {
-        //                 HashMap<String, String> params = getParamFromReqBody(req.body());
-        //                 return StickerGUI.update(Long.parseLong(req.params(":id_sticker")),
-        //                                          getParamUTF8(params, "color"),
-        //                                          getParamUTF8(params, "description"));
-        //             });
+        put("/hidden/stickers/:id_sticker", (req, res) -> {
+            HashMap<String, String> params = getParamFromReqBody(req.body());
+            return StickerGUI.update(Long.parseLong(req.params(":id_sticker")),
+                                     getParamUTF8(params, "color"),
+                                     getParamUTF8(params, "description"));
+        });
 
+        // TODO remove and replace with DELETE below
         post("/hidden/stickers/delete/:id_sticker",
              (req, res) -> StickerGUI.deleteById(Long.parseLong(req.params(":id_sticker"))));
 
-        //        delete("/hidden/stickers/:id_sticker",
-        //             (req, res) -> StickerGUI.deleteById(Long.parseLong(req.params(":id_sticker"))));
+        delete("/hidden/stickers/:id_sticker",
+               (req, res) -> StickerGUI.deleteById(Long.parseLong(req.params(":id_sticker"))));
 
         //===============CR*D awards===============
         post("/hidden/awards", (req, res) -> {
@@ -178,10 +188,11 @@ public class StartServer
         get("/awards/id/:id_award",
             (req, res) -> AwardGUI.readById(LoginUtil.isLoggedIn(req, res), Long.parseLong(req.params(":id_award"))));
 
+        // TODO remove and replace with DELETE below
         post("/hidden/awards/delete/:id_award",
              (req, res) -> AwardGUI.deleteById(Long.parseLong(req.params(":id_award"))));
 
-        //        delete("/hidden/awards/:id_award",
-        //               (req, res) -> AwardGUI.deleteById(Long.parseLong(req.params(":id_award"))));
+        delete("/hidden/awards/:id_award",
+               (req, res) -> AwardGUI.deleteById(Long.parseLong(req.params(":id_award"))));
     }
 }
