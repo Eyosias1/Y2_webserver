@@ -15,8 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import static com.uca.util.IDUtil.isValidId;
-import static com.uca.util.IDUtil.requireValid;
+import static com.uca.util.IDUtil.notIsValidId;
+import static com.uca.util.IDUtil.requireValidId;
 import static com.uca.util.StringUtil.isValidShortString;
 import static com.uca.util.StringUtil.isValidString;
 
@@ -25,35 +25,43 @@ public class AwardGUI extends _BasicGUI
     public static String create(String motive, String teacherUserName, long studentId, long stickerId)
             throws IOException, TemplateException, IllegalArgumentException
     {
-        if (!isValidId(stickerId) || !isValidId(studentId))
+        if (notIsValidId(stickerId) || notIsValidId(studentId))
         {
             throw new IllegalArgumentException(InfoMsg.ID_INVALIDE.name());
         }
         else
         {
-            if (!isValidString(motive) || !isValidShortString(teacherUserName))
+            if (!isValidString(motive))
             {
                 infoMsg = InfoMsg.CHAMPS_NON_POSTABLES;
             }
             else
             {
-                AwardEntity award = new AwardEntity();
-                award.setAttributionDate(new Date(new java.util.Date().getTime()));
-                award.setMotive(motive);
-                award.setTeacher(TeacherCore.readByUserName(teacherUserName));
-                award.setStudent(StudentCore.readById(studentId));
-                award.setSticker(StickerCore.readById(stickerId));
-                infoMsg = AwardCore.create(award) != null ? InfoMsg.AJOUT_SUCCES : InfoMsg.AJOUT_ECHEC;
+                if (!isValidShortString(teacherUserName))
+                {
+                    throw new IllegalArgumentException(InfoMsg.UTILISATEUR_INTROUVABLE.name());
+                }
+                else
+                {
+                    AwardEntity award = new AwardEntity();
+                    award.setAttributionDate(new Date(new java.util.Date().getTime()));
+                    award.setMotive(motive);
+                    award.setTeacher(TeacherCore.readByUserName(teacherUserName));
+                    award.setStudent(StudentCore.readById(studentId));
+                    award.setSticker(StickerCore.readById(stickerId));
+                    infoMsg = AwardCore.create(award) != null ? InfoMsg.AJOUT_SUCCES : InfoMsg.AJOUT_ECHEC;
+                }
             }
         }
         return readAll(true);
     }
 
     /**
-     * displays several - or all - awards, depending on {@code studentId}
+     * displays several - or all - awards, depending on {@code isByStudent} and {@code studentId}
      *
      * @param isAuthorized whether the user is authorized to access the resource
-     * @param studentId    a student id (will trigger a reading <em>by student</em> if > 0)
+     * @param studentId    a student id (unimportant if reading for all students, but must be >0 otherwise)
+     * @param isByStudent  whether this reading is by student of for all students
      * @return a view that displays said awards
      */
     private static String readMany(boolean isAuthorized, long studentId, boolean isByStudent)
@@ -69,7 +77,7 @@ public class AwardGUI extends _BasicGUI
         }
         else
         {
-            requireValid(studentId);
+            requireValidId(studentId);
             input.put("awards", AwardCore.readByStudentId(studentId));
         }
 
@@ -96,7 +104,7 @@ public class AwardGUI extends _BasicGUI
     public static String readById(boolean isAuthorized, long id)
             throws IOException, TemplateException, IllegalArgumentException, NoSuchElementException
     {
-        requireValid(id);
+        requireValidId(id);
         Map<String, Object> input    = new HashMap<>();
         Template            template = _FreeMarkerInitializer.getContext().getTemplate("awards/award.ftl");
 
@@ -113,7 +121,7 @@ public class AwardGUI extends _BasicGUI
 
     public static String deleteById(long id) throws IOException, TemplateException, IllegalArgumentException
     {
-        requireValid(id);
+        requireValidId(id);
         AwardCore.deleteById(id);
         // we assume that the user was only able to access this function because it was authorized
         return readMany(true, 0, false);

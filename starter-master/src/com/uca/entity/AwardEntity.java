@@ -1,10 +1,10 @@
 package com.uca.entity;
 
-import com.uca.util.IDUtil;
-import com.uca.util.StringUtil;
-
 import java.sql.Date;
-import java.util.Objects;
+
+import static com.uca.util.IDUtil.requireValidId;
+import static com.uca.util.StringUtil.requiredString;
+import static java.util.Objects.requireNonNull;
 
 public class AwardEntity
 {
@@ -22,7 +22,7 @@ public class AwardEntity
 
     public void setId(long id)
     {
-        this.id = IDUtil.requireValid(id);
+        this.id = requireValidId(id);
     }
 
     public Date getAttributionDate()
@@ -32,7 +32,7 @@ public class AwardEntity
 
     public void setAttributionDate(Date attributionDate)
     {
-        this.attributionDate = Objects.requireNonNull(attributionDate);
+        this.attributionDate = requireNonNull(attributionDate);
     }
 
     public String getMotive()
@@ -42,7 +42,7 @@ public class AwardEntity
 
     public void setMotive(String motive)
     {
-        this.motive = StringUtil.required(motive);
+        this.motive = requiredString(motive);
     }
 
     public TeacherEntity getTeacher()
@@ -52,7 +52,7 @@ public class AwardEntity
 
     public void setTeacher(TeacherEntity teacher)
     {
-        this.teacher = Objects.requireNonNull(teacher);
+        this.teacher = requireNonNull(teacher);
     }
 
     public StickerEntity getSticker()
@@ -62,7 +62,7 @@ public class AwardEntity
 
     public void setSticker(StickerEntity sticker)
     {
-        this.sticker = Objects.requireNonNull(sticker);
+        this.sticker = requireNonNull(sticker);
     }
 
     public StudentEntity getStudent()
@@ -72,7 +72,7 @@ public class AwardEntity
 
     public void setStudent(StudentEntity student)
     {
-        this.student = Objects.requireNonNull(student);
+        this.student = requireNonNull(student);
     }
 
     @Override

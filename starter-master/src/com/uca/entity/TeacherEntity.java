@@ -1,9 +1,8 @@
 package com.uca.entity;
 
-import com.uca.util.IDUtil;
-import com.uca.util.StringUtil;
-
-import java.util.Objects;
+import static com.uca.util.IDUtil.requireValidId;
+import static com.uca.util.StringUtil.requiredShortString;
+import static java.util.Objects.requireNonNull;
 
 public class TeacherEntity
 {
@@ -18,7 +17,7 @@ public class TeacherEntity
 
     TeacherEntity(TeacherEntity other)
     {
-        Objects.requireNonNull(other);
+        requireNonNull(other);
         this.id = other.id;
         this.lastName = other.lastName;
         this.firstName = other.firstName;
@@ -34,7 +33,7 @@ public class TeacherEntity
 
     public void setId(long id)
     {
-        this.id = IDUtil.requireValid(id);
+        this.id = requireValidId(id);
     }
 
     public String getLastName()
@@ -44,7 +43,7 @@ public class TeacherEntity
 
     public void setLastName(String lastName)
     {
-        this.lastName = StringUtil.requiredOfSize(lastName);
+        this.lastName = requiredShortString(lastName);
     }
 
     public String getFirstName()
@@ -54,7 +53,7 @@ public class TeacherEntity
 
     public void setFirstName(String firstName)
     {
-        this.firstName = StringUtil.requiredOfSize(firstName);
+        this.firstName = requiredShortString(firstName);
     }
 
     public String getUserName()
@@ -64,7 +63,7 @@ public class TeacherEntity
 
     public void setUserName(String userName)
     {
-        this.userName = StringUtil.requiredOfSize(userName);
+        this.userName = requiredShortString(userName);
     }
 
     public String getUserPwd()
@@ -74,7 +73,7 @@ public class TeacherEntity
 
     public void setUserPwd(String userPwd)
     {
-        this.userPwd = StringUtil.requiredOfSize(userPwd);
+        this.userPwd = requiredShortString(userPwd);
     }
 
     public String getUserSalt()
@@ -84,7 +83,7 @@ public class TeacherEntity
 
     public void setUserSalt(String userSalt)
     {
-        this.userSalt = StringUtil.requiredOfSize(userSalt);
+        this.userSalt = requiredShortString(userSalt);
     }
 
     @Override

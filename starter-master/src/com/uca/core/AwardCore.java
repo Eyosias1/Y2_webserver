@@ -2,16 +2,17 @@ package com.uca.core;
 
 import com.uca.dao.AwardDAO;
 import com.uca.entity.AwardEntity;
-import com.uca.util.IDUtil;
 
 import java.util.ArrayList;
-import java.util.Objects;
+
+import static com.uca.util.IDUtil.requireValidId;
+import static java.util.Objects.requireNonNull;
 
 public class AwardCore
 {
     public static AwardEntity create(AwardEntity obj)
     {
-        Objects.requireNonNull(obj);
+        requireNonNull(obj);
         return new AwardDAO().create(obj);
     }
 
@@ -22,19 +23,19 @@ public class AwardCore
 
     public static ArrayList<AwardEntity> readByStudentId(long studentId)
     {
-        IDUtil.requireValid(studentId);
+        requireValidId(studentId);
         return new AwardDAO().readByStudentId(studentId);
     }
 
     public static AwardEntity readById(long id)
     {
-        IDUtil.requireValid(id);
+        requireValidId(id);
         return new AwardDAO().readById(id);
     }
 
     public static void deleteById(long id)
     {
-        IDUtil.requireValid(id);
+        requireValidId(id);
         new AwardDAO().deleteById(id);
     }
 }

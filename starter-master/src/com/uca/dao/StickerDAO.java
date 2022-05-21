@@ -3,21 +3,23 @@ package com.uca.dao;
 import com.uca.entity.Color;
 import com.uca.entity.Description;
 import com.uca.entity.StickerEntity;
-import com.uca.util.IDUtil;
-import com.uca.util.StringUtil;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Objects;
+
+import static com.uca.util.IDUtil.checkIfValidAndIdenticalIds;
+import static com.uca.util.IDUtil.requireValidId;
+import static com.uca.util.StringUtil.requiredShortString;
+import static java.util.Objects.requireNonNull;
 
 public class StickerDAO extends _Generic<StickerEntity>
 {
     @Override
     StickerEntity getFullEntity(ResultSet resultSet) throws SQLException
     {
-        Objects.requireNonNull(resultSet);
+        requireNonNull(resultSet);
         StickerEntity entity = new StickerEntity();
         entity.setId(resultSet.getLong("id_sticker"));
         entity.setColor(Color.valueOf(resultSet.getString("color")));
@@ -28,13 +30,13 @@ public class StickerDAO extends _Generic<StickerEntity>
     @Override
     public StickerEntity create(StickerEntity obj)
     {
-        Objects.requireNonNull(obj);
+        requireNonNull(obj);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
                     "INSERT INTO Sticker(color, description) VALUES(?, ?);");
-            statement.setString(1, StringUtil.requiredOfSize(obj.getColor().name()));
-            statement.setString(2, StringUtil.requiredOfSize(obj.getDescription().name()));
+            statement.setString(1, requiredShortString(requireNonNull(obj.getColor()).name()));
+            statement.setString(2, requiredShortString(requireNonNull(obj.getDescription()).name()));
             statement.executeUpdate();
             return obj;
         } catch (SQLException e)
@@ -68,7 +70,7 @@ public class StickerDAO extends _Generic<StickerEntity>
     @Override
     public StickerEntity readById(long id)
     {
-        IDUtil.requireValid(id);
+        requireValidId(id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
@@ -89,14 +91,14 @@ public class StickerDAO extends _Generic<StickerEntity>
     @Override
     public StickerEntity update(StickerEntity obj, long id)
     {
-        Objects.requireNonNull(obj);
-        IDUtil.requireValidAndIdentical(obj.getId(), id);
+        requireNonNull(obj);
+        checkIfValidAndIdenticalIds(obj.getId(), id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
                     "UPDATE Sticker SET color = ?, description = ? WHERE id_sticker = ?;");
-            statement.setString(1, StringUtil.requiredOfSize(obj.getColor().name()));
-            statement.setString(2, StringUtil.requiredOfSize(obj.getDescription().name()));
+            statement.setString(1, requiredShortString(requireNonNull(obj.getColor()).name()));
+            statement.setString(2, requiredShortString(requireNonNull(obj.getDescription()).name()));
             statement.setLong(3, id);
             statement.executeUpdate();
             return obj;
@@ -110,14 +112,14 @@ public class StickerDAO extends _Generic<StickerEntity>
     @Override
     public void delete(StickerEntity obj)
     {
-        Objects.requireNonNull(obj);
+        requireNonNull(obj);
         this.deleteById(obj.getId());
     }
 
     @Override
     public void deleteById(long id)
     {
-        IDUtil.requireValid(id);
+        requireValidId(id);
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
@@ -132,12 +134,14 @@ public class StickerDAO extends _Generic<StickerEntity>
 
     public boolean comboExists(Color color, Description description)
     {
+        String colorString       = requiredShortString(requireNonNull(color).name());
+        String descriptionString = requiredShortString(requireNonNull(description).name());
         try
         {
             PreparedStatement statement = this.connect.prepareStatement(
                     "SELECT * FROM Sticker WHERE color = ? AND description = ?;");
-            statement.setString(1, StringUtil.requiredOfSize(color.name()));
-            statement.setString(2, StringUtil.requiredOfSize(description.name()));
+            statement.setString(1, colorString);
+            statement.setString(2, descriptionString);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next())
             {
